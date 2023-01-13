@@ -31,6 +31,14 @@ class Menus_views:
         print(Fore.YELLOW + "3. Afficher la liste des tournois 👀" + Style.RESET_ALL)
         print(Fore.RED + "4. Retour 🔙" + Style.RESET_ALL)
 
+    @staticmethod
+    def play_tournament_menu():
+        print("CHESSER 🏆\n")
+        print(Fore.CYAN + "Menu lancement du tournois 🏆\n" + Style.RESET_ALL)
+        print(Fore.YELLOW + "1. Ajouter des joueurs a un tournois 🏆" + Style.RESET_ALL)
+        print(Fore.YELLOW + "2. Jouer une Ronde 🏆" + Style.RESET_ALL)
+        print(Fore.RED + "3. Retour 🔙" + Style.RESET_ALL)
+
 
 class PlayerCreationView:
     @staticmethod

@@ -1,10 +1,16 @@
+from datetime import datetime
 import json
 from multiprocessing import managers
 from operator import ge
+import random
+import time
+from typing import List, Union
+from models.round import Round, serialize_round, deserialize_round
+from views.lists_view import List_view
 from controllers.db_controller import Database
 from controllers.manager_controller import Manager
-from models.players import Player
-from models.tournament import Tournament
+from models.players import Player, serialize_players
+from models.tournament import Tournament, serialize_tournament
 from views.menu_view import *
 from utils import clear_console
 
@@ -29,7 +35,10 @@ class MainMenu:
         """
         while True:
             if selector == "1":
-                play_tournament = 1
+                play_tournament_menu = PlayTournamentMenu()
+                option_play_tournament = play_tournament_menu.select(
+                    input("Selection : ")
+                )
             elif selector == "2":
                 player_menu = PlayerMenu()
                 option_player = player_menu.select(input("Selection : "))
@@ -38,12 +47,36 @@ class MainMenu:
                 option_tournament = tournament_management.select(input("Selection : "))
             elif selector == "4":
                 exit()
+            elif selector == "5":
+                leaderboard = Leaderboard()
+
             else:
                 print("Cette option n'existe pas, veuillez réessayer")
                 return_back = MainMenu()
                 main_menu_selector = return_back.select(
                     input("Entrez votre réponse : ")
                 )
+
+
+"""
+leaderboard
+"""
+
+
+class Leaderboard:
+    def __init__(self) -> None:
+        clear_console()
+        selected_tournament = view_list(Tournament, True, reduce=True)
+        for player in selected_tournament.leaderboard:
+            print(player.first_name, player.last_name, player.score)
+
+        main_menu = MainMenu()
+        main_menu.select(input("Entrez votre réponse : "))
+
+
+"""
+Players
+"""
 
 
 class PlayerMenu:
@@ -171,13 +204,11 @@ class PlayerCreation:
 
         new_player = Player(first_name, last_name, birthdate, gender, rank)
         self.players_list.append(new_player)
-        player_list_lenth = len(
-            Player.player_format_fitting_python(Database.read_db("players"))
-        )
+        player_list_lenth = len(Player.deserialize_players(Database.read_db("players")))
 
         if (len(self.players_list) + player_list_lenth) < 8:
             print("\n" + first_name, last_name, " a bien été ajouté")
-            answer = PlayerCreation.yes_or_no(
+            answer = yes_or_no(
                 PlayerCreationView.ask_again().format(
                     len(self.players_list) + player_list_lenth
                 )
@@ -202,66 +233,10 @@ class PlayerCreation:
             main_menu = MainMenu()
             main_menu.select(input("Entrez votre réponse : "))
 
-    def yes_or_no(question):
-        """Ask a yes or no question.
 
-        Args:
-            question (str): The yes or no question to be asked.
-
-        Returns:
-            bool: True if the answer is "yes", False if the answer is "no".
-
-        Raises:
-            ValueError: If the answer is not "yes" or "no".
-        """
-        answer = input(question + "(O/n): ").lower().strip()
-        print("")
-        while not (
-            answer == "o" or answer == "oui" or answer == "n" or answer == "non"
-        ):
-            print("Entrez oui ou non")
-            answer = input(question + "(O/n):").lower().strip()
-            print("")
-        if answer[0] == "o":
-            return True
-        else:
-            return False
-
-
-def view_list(object_type):
-    clear_console()
-    """View a list of objects.
-
-    Args:
-        object_type: The type of object whose list is to be viewed. Can be either a Player object or a Tournament object.
-
-    Returns:
-        None
-    """
-    final_list = []
-    initial_list = []
-    if object_type == Player:
-        print("Liste des joueurs :")
-        initial_list = Player.player_format_fitting_python(Database.read_db("players"))
-    elif object_type == Tournament:
-        print("Liste des tournois :")
-        initial_list = Tournament.tournament_format_fitting_python(
-            Database.read_db("tournaments")
-        )
-    else:
-        print("Invalid object type. Please pass either Player or Tournament.")
-        return
-    id = 1
-    for object in initial_list:
-        print(object)
-        final_list.append(object)
-        Manager.view_object(object, id)
-        id += 1
-
-    input("Appuyez sur entrée pour revenir au menu principal")
-    clear_console()
-    main_menu = MainMenu()
-    main_menu.select(input("Entrez votre réponse : "))
+"""
+Tounaments
+"""
 
 
 class TournamentMenu:
@@ -298,7 +273,8 @@ class TournamentMenu:
                 tournament_creation = TournamentCreation()
                 create_tournament = tournament_creation.create_new()
             elif selector == "3":
-                view_list(Tournament)
+                tournament_list = TournamentList()
+                tournament_list.view_list()
             elif selector == "4":
                 return_back = MainMenu()
                 main_menu_selector = return_back.select(
@@ -310,6 +286,44 @@ class TournamentMenu:
                 main_menu_selector = return_back.select(
                     input("Entrez votre réponse : ")
                 )
+
+
+class TournamentList:
+    """A class representing the tournament list in a game.
+
+    Attributes:
+        None
+    """
+
+    def __init__(self):
+        self.tournaments = []
+
+    def view_list(self):
+        """View the list of tournaments.
+
+        Returns:
+            None
+        """
+        clear_console()
+        selected_tournament: Tournament = view_list(
+            Tournament,
+            selection_enabled=True,
+            question="Sélectionnez un tournoi pour afficher ses joueurs",
+        )
+        clear_console()
+        Manager.view_object(selected_tournament)
+        print("Liste des joueurs du tournois sélectionné :")
+        if len(selected_tournament.players) == 0:
+            print("Aucun joueur n'a été ajouté à ce tournoi")
+
+        else:
+            player_dict = Player.deserialize_players(selected_tournament.players)
+            for player in player_dict:
+                Manager.view_object(player)
+
+        input("Appuyez sur entrée pour revenir au menu principal")
+        main_menu = MainMenu()
+        main_menu.select(input("Entrez votre réponse : "))
 
 
 class TournamentCreation:
@@ -418,19 +432,282 @@ class TournamentCreation:
         main_menu = MainMenu()
         main_menu.select(input("Entrez votre réponse : "))
 
-    def add_player_to_tournament(self, player: Player, tournament: Tournament) -> None:
-        """
-        Adds a player to a tournament.
 
-        Parameters:
-        player (Player): The player object to add to the tournament.
-        tournament (Tournament): The tournament object to add the player to.
+"""
+Play Tournament Menu.
+"""
+
+
+class PlayTournamentMenu:
+    def __init__(self):
+        clear_console()
+        """
+        Initialize the tournament play.
+        """
+        Menus_views.play_tournament_menu()
+
+    def select(self, selector: int):
+        """Select an option from the tournament menu.
+
+        Args:
+            selector: An integer representing the selected option.
 
         Returns:
-        None
+            None
+
+        Raises:
+            TypeError: If the selector is not a valid integer.
         """
-        if player not in tournament.players:
-            tournament.players.append(player)
-            print(f"Le joueur {player.first_name} {player.last_name} a été ajouté au tournoi {tournament.name}.")
+        while True:
+            if selector == "1":
+                self.add_players_to_tournament()
+            elif selector == "2":
+                self.generate_pairs()
+            elif selector == "3":
+                return_back = MainMenu()
+                main_menu_selector = return_back.select(
+                    input("Entrez votre réponse : ")
+                )
+            else:
+                print("Cette option n'est pas disponible, veuillez réessayer")
+                return_back = TournamentMenu()
+                main_menu_selector = return_back.select(
+                    input("Entrez votre réponse : ")
+                )
+
+    def add_players_to_tournament(self):
+        clear_console()
+        print("Welcome to the tournament.")
+        tournament = self.select_tournament()
+        if tournament is None:
+            create_new = input(
+                "No tournament found, would you like to create one? (y/n)"
+            )
+            if create_new.lower() == "y":
+                tournament = self.create_tournament()
+            else:
+                return
+        players = self.select_players(tournament)
+        for player in players:
+            player.points = 0
+        tournament.players = players
+        tournament_db = Tournament.tournament_format_fitting_db(tournament)
+        Database.update_by_name(tournament.name, tournament_db, "tournaments")
+
+        clear_console()
+        print(len(players), "joueur ajoutés au tournois")
+        time.sleep(2)
+        return_back = PlayTournamentMenu()
+        return_back.select(input("Entrez votre réponse : "))
+
+    def select_tournament(self):
+        selected_tournament = view_list(
+            Tournament, True, "\n\nSélectionnez un tournois: ", True
+        )
+        return selected_tournament
+
+    def create_tournament(self):
+        tournament_creation = TournamentCreation()
+        tournament_creation.create_new()
+
+    def select_players(self, tournament: Tournament):
+        # players = Database.read_db("players")
+        selected_players = []
+        while True:
+            new_player = view_list(
+                Player,
+                True,
+                "Select a player by number or create a new player: ",
+                True,
+                True,
+            )
+            if new_player != "End":
+                selected_players.append(Player.player_format_fitting_db(new_player))
+                print(selected_players)
+            else:
+                return selected_players
+
+    def generate_pairs(self):
+        selected_tournament: Tournament = view_list(
+            Tournament, True, "\n\nSélectionnez un tournois: ", True
+        )
+        if selected_tournament.round != []:
+            last_round = selected_tournament.round[-1]
         else:
-            print(f"Le joueur {player.first_name} {player.last_name} est déjà présent dans le tournoi {tournament.name}.")
+            last_round = selected_tournament.generate_pairs()
+
+        if isinstance(last_round, Round) and last_round.is_finished == True:
+            round = selected_tournament.generate_pairs()
+        else:
+            round = last_round
+
+        print(round)
+        print(selected_tournament.players)
+        # clear_console()
+
+        print(round.id)
+        for match in round.matches:
+            print("match", match)
+            match_player = [
+                Player.deserialize_players([match[0]])[0],
+                Player.deserialize_players([match[1]])[0],
+                match[2],
+            ]
+            List_view.view_match(match_player)
+
+        if yes_or_no("Jouer la ronde?"):
+            selected_tournament.play_round()
+
+        Database.update_by_name(
+            selected_tournament.name,
+            serialize_tournament(selected_tournament),
+            "tournaments",
+        )
+        main_menu = PlayTournamentMenu
+        main_menu.select(input("Entrez votre réponse : "))
+
+
+"""
+Utilities.
+"""
+
+
+def yes_or_no(question):
+    """Ask a yes or no question.
+
+    Args:
+        question (str): The yes or no question to be asked.
+
+    Returns:
+        bool: True if the answer is "yes", False if the answer is "no".
+
+    Raises:
+        ValueError: If the answer is not "yes" or "no".
+    """
+    answer = input(question + "(O/n): ").lower().strip()
+    print("")
+    while not (answer == "o" or answer == "oui" or answer == "n" or answer == "non"):
+        print("Entrez oui ou non")
+        answer = input(question + "(O/n):").lower().strip()
+        print("")
+    if answer[0] == "o":
+        return True
+    else:
+        return False
+
+
+def view_list(
+    object_type,
+    selection_enabled=False,
+    question="",
+    additional_item_create=False,
+    additional_item_end=False,
+    reduce=False,
+):
+    """
+    View a list of objects.
+    Args:
+        object_type: The type of object whose list is to be viewed. Can be either a Player object or a Tournament object.
+        selection_enabled: A boolean value that indicates whether to allow user to select an object from the list.
+        question: A string that will be printed if selection_enabled is True, asking the user which object to select.
+
+    Returns:
+        None or the selected object
+    """
+    final_list = []
+    initial_list = []
+    if object_type == Player:
+        print("Liste des joueurs :")
+        initial_list = Player.deserialize_players(Database.read_db("players"))
+    elif object_type == Tournament:
+        print("Liste des tournois :")
+        initial_list = Tournament.deserialize_tournament(
+            Database.read_db("tournaments")
+        )
+    else:
+        print("Entrez un Tounois ou un joueur.")
+        return
+    id = 1
+    if reduce:
+        for object in initial_list:
+            if len(object.leaderboard) != 0:
+                final_list.append(object)
+                Manager.view_object(object, id)
+                id += 1
+    else:
+        for object in initial_list:
+            final_list.append(object)
+            Manager.view_object(object, id)
+            id += 1
+    if additional_item_create:
+        id_as_string = str(id)
+        id_as_string_plus_one = str(id + 1)
+        if object_type == Player:
+            print(
+                Fore.CYAN
+                + "-----  "
+                + id_as_string
+                + "  -----"
+                + "\nCréer un nouveau joueur"
+                + Style.RESET_ALL
+            )
+        elif object_type == Tournament:
+            print(
+                Fore.CYAN
+                + "-----  "
+                + id_as_string
+                + "  -----"
+                + "\nCréer un nouveau tournoi"
+                + Style.RESET_ALL
+            )
+    if additional_item_end:
+        id_as_string = str(id + 1)
+        print(
+            Fore.RED
+            + "-----  "
+            + id_as_string
+            + "  -----"
+            + "\nFin de l'ajout"
+            + Style.RESET_ALL
+        )
+    if selection_enabled:
+        selected_id = input(question + " (Entrer 'R' pour revenir au menu principal)")
+        if selected_id.upper() == "R":
+            clear_console()
+            main_menu = MainMenu()
+            main_menu.select(input("Entrez votre réponse : "))
+        try:
+            selected_id = int(selected_id)
+        except ValueError:
+            print("Entrez un numéro valide ou 'R'")
+            return
+        if selected_id < 1 or selected_id > len(final_list) + 2:
+            print("Entrez un numéro valide ")
+            return
+        if selected_id == len(final_list) + 1:
+            if object_type == Player:
+                player_creator = PlayerCreation()
+                player_creator.create_new()
+            elif object_type == Tournament:
+                tournament_creator = TournamentCreation()
+                tournament_creator.create_new()
+        if selected_id == len(final_list) + 2:
+            return "End"
+        selected_object: Player | Tournament = final_list[selected_id - 1]
+        return selected_object
+    else:
+        input("Appuyez sur entrée pour revenir au menu principal")
+        clear_console()
+        main_menu = MainMenu()
+        main_menu.select(input("Entrez votre réponse : "))
+
+    # selected_id = input(
+    #     "Entrez l'identifiant du tournoi pour afficher les joueurs de celui-ci: "
+    # )
+    # try:
+    #     selected_id = int(selected_id)
+    #     if selected_id < 1 or selected_id > len(initial_list):
+    #         raise ValueError
+    # except ValueError:
+    #     print("Entrée non valide, veuillez entrer un identifiant valide.")
+    #     return

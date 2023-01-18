@@ -12,7 +12,8 @@ class Menus_views:
         print(Fore.YELLOW + "1. Jouer un tournoi 🏆" + Style.RESET_ALL)
         print(Fore.YELLOW + "2. Gestion des joueurs 👤" + Style.RESET_ALL)
         print(Fore.YELLOW + "3. Gestion des tournois 🏆" + Style.RESET_ALL)
-        print(Fore.RED + "4. Quitter ❌" + Style.RESET_ALL)
+        print(Fore.YELLOW + "4. Afficher les classements 🏆" + Style.RESET_ALL)
+        print(Fore.RED + "5. Quitter ❌" + Style.RESET_ALL)
 
     @staticmethod
     def players_menu():

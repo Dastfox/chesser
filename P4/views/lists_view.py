@@ -1,6 +1,7 @@
 from colorama import Fore, Style
 
 from models.players import Player
+
 # from models.tournament import Tournament
 
 
@@ -8,6 +9,7 @@ class List_view:
     @staticmethod
     def view_player(player: Player, id: int = 0):
         id_as_str = str(id)
+        rank_as_str = str(player.rank)
         if id != 0:
             print(Fore.YELLOW + "-----  " + id_as_str + "  -----" + Style.RESET_ALL)
         print(Fore.YELLOW + "\nPrénom :", player.first_name + Style.RESET_ALL)
@@ -23,15 +25,7 @@ class List_view:
         )
         if player.gender:
             print(Fore.YELLOW + "Genre :", player.gender + Style.RESET_ALL)
-        print(Fore.YELLOW + "Classement :", player.rank + "🏆" + Style.RESET_ALL)
-
-    def view_player_leaderboard(player: Player, id: int = 0):
-        id_as_str = str(id)
-        if id != 0:
-            print(Fore.YELLOW + "-----  " + id_as_str + "  -----" + Style.RESET_ALL)
-        print(Fore.YELLOW + "\nPrénom :", player.first_name + Style.RESET_ALL)
-        print(Fore.YELLOW + "Nom :", player.last_name + Style.RESET_ALL)
-        print(Fore.YELLOW + "Nom :", player.points + Style.RESET_ALL)
+        print(Fore.YELLOW + "Classement :", rank_as_str + "🏆" + Style.RESET_ALL)
 
     @staticmethod
     def view_tournament(tournament, id: int = 0):

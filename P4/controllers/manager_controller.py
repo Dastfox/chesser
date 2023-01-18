@@ -1,5 +1,5 @@
-from models.players import Player
-from models.tournament import Tournament
+from models.players import Player, serialize_players
+from models.tournament import Tournament, serialize_tournament
 import os
 from colorama import Fore, Style
 from views.lists_view import List_view
@@ -11,13 +11,15 @@ class Manager:
 
     @staticmethod
     def object_list_fitting_db(objects: list):
+
         list_fitting_db = []
         for obj in objects:
             if isinstance(obj, Player):
-                list_fitting_db.append(obj.player_format_fitting_db())
+                list_fitting_db.append(serialize_players([obj])[0])
             elif isinstance(obj, Tournament):
-                list_fitting_db.append(obj.tournament_format_fitting_db())
+                list_fitting_db.append(serialize_tournament(obj))
         return list_fitting_db
+
     """
     Display list of objects
     """

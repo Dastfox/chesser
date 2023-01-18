@@ -28,6 +28,12 @@ class Player:
             "points": self.points,
         }
 
+    def __eq__(self, other):
+        if not isinstance(other, Player):
+            return NotImplemented
+
+        return self.first_name == other.first_name and self.last_name == other.last_name
+
     @staticmethod
     def deserialize_players(player_dict_list: list[dict]):
         printable_list: list[Player] = []

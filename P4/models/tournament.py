@@ -18,7 +18,7 @@ class Tournament:
         location: str,
         date: str,
         round_amount: int,
-        round: list[Round],
+        rounds: list[Round],
         players: list[Player],
         time_control: str,
         description: str,
@@ -29,7 +29,7 @@ class Tournament:
         self.location = location
         self.date = date
         self.round_amount = round_amount
-        self.round = round
+        self.rounds = rounds
         self.players = players
         self.time_control = time_control
         self.description = description
@@ -48,7 +48,7 @@ class Tournament:
                     location=tournament_data["location"],
                     date=tournament_data["date"],
                     round_amount=tournament_data["round_amount"],
-                    round=round,
+                    rounds=round,
                     players=players,
                     time_control=tournament_data["time_control"],
                     description=tournament_data["description"],
@@ -59,10 +59,10 @@ class Tournament:
         return tournament_list
 
     def generate_pairs(self):
-        if self.round == None:
-            self.round = []
-        round_num = len(self.round) + 1
-        self.round.append(
+        if self.rounds == None:
+            self.rounds = []
+        round_num = len(self.rounds) + 1
+        self.rounds.append(
             Round(
                 id=f"Round {round_num}",
                 is_finished=False,
@@ -79,7 +79,7 @@ class Tournament:
         ]
         for p1, p2 in pairs:
             if (p1, p2) not in self.pair_played and (p2, p1) not in self.pair_played:
-                self.round[-1].matches.append((p1, p2, None))
+                self.rounds[-1].matches.append((p1, p2, None))
                 self.pair_played.append((p1, p2))
             else:
                 available_players = [
@@ -91,29 +91,39 @@ class Tournament:
                 ]
                 if available_players:
                     p2 = random.choice(available_players)
-                    self.round[-1].matches.append((p1, p2, None))
+                    self.rounds[-1].matches.append((p1, p2, None))
                     self.pair_played.append((p1, p2))
-        self.update_points()
-        if self.round[-1]:
-            return self.round[-1]
+        if self.rounds[-1]:
+            return self.rounds[-1]
 
     def update_points(self):
-        for p1, p2, result in self.round[-1].matches:
+        for match in self.rounds[-1].matches:
+            p1: Player = Player.deserialize_players([match[0]])[0]
+            player1 = next(player for player in self.players if player == p1)
+            p2: Player = Player.deserialize_players([match[1]])[0]
+            player2 = next(player for player in self.players if player == p2)
+            result = match[2]
+            if result == "1" or result == "2":
+                result = int(result)
+
             if result == 1:
                 p1.points += 1
             elif result == 2:
                 p2.points += 1
-            elif result == "D":
+            elif result == "D" or result == "d":
                 p1.points += 0.5
                 p2.points += 0.5
+            player1 = p1
+            player2 = p2
+        self.rounds[-1].matches = []
 
     def play_match(self, match_idx: int, result: Union[int, str]):
-        p1, p2, _ = self.round[-1].matches[match_idx]
-        self.round[-1].matches[match_idx] = (p1, p2, result)
+        p1, p2, _ = self.rounds[-1].matches[match_idx]
+        self.rounds[-1].matches[match_idx] = (p1, p2, result)
 
     def play_round(self):
-        print(f"Playing round {self.round[-1].id}")
-        for idx, (p1, p2, result) in enumerate(self.round[-1].matches):
+        print(f"Playing round {self.rounds[-1].id}")
+        for idx, (p1, p2, result) in enumerate(self.rounds[-1].matches):
             j1 = Player.deserialize_players([p1])[0]
             j2 = Player.deserialize_players([p2])[0]
             print(f"Playing match {idx + 1}")
@@ -126,12 +136,26 @@ class Tournament:
                     "Enter match result (1 for player 1, 2 for player 2, D for draw): "
                 )
             self.play_match(idx, result)
+        self.rounds[-1].is_finished = True
+        self.rounds[-1].date_time_end = str(datetime.now())
+        self.update_points()
 
 
 def serialize_tournament(tournament: Tournament):
+    if not tournament.rounds:
+        rounds = []
+    elif isinstance(tournament.rounds[0], Round):
+        rounds = serialize_round(tournament.rounds)
+    else:
+        rounds = tournament.rounds
 
-    rounds = serialize_round(tournament.round)
-    players = serialize_players(tournament.players)
+    if (tournament.players == None) or (tournament.players == []):
+        players = []
+    elif isinstance(tournament.players, Player):
+        players = serialize_players([tournament.players])
+    else:
+        players = tournament.players
+
     pair_played = []
     for pair in tournament.pair_played:
         if isinstance(pair[0], Player) and isinstance(pair[1], Player):

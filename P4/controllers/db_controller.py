@@ -1,5 +1,4 @@
 from tinydb import TinyDB as tiny, where
-from pathlib import Path
 
 
 class Database:
@@ -17,15 +16,16 @@ class Database:
         return list.all()
 
     def update_by_name(name: str, updated_data: dict, table_name: str, db_name="db"):
-        # print("Updating {} in {}...".format(name, table_name), updated_data)
         db = tiny("{}.json".format(db_name))
         table = db.table(table_name)
         obj = table.search(where("name") == name)
         if obj:
             obj = obj[0]
-            for player in updated_data["players"]:
-                if player not in obj["players"]:
-                    obj["players"].append(player)
+            for updated_player in updated_data["players"]:
+                for i, obj_player in enumerate(obj["players"]):
+                    if obj_player['firstname'] == updated_player['firstname'] and obj_player['lastname'] == updated_player['lastname']:
+                        obj["players"][i] = updated_player
+                        break
             obj["players"].sort(key=lambda x: x["lastname"])
             del updated_data["players"]
 

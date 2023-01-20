@@ -1,4 +1,4 @@
-from controllers.main_menu_controller import MainMenu
+from controllers.menu_controller import MainMenu
 
 
 def main():

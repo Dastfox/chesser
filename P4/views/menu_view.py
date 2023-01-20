@@ -40,6 +40,14 @@ class Menus_views:
         print(Fore.YELLOW + "2. Jouer une Ronde 🏆" + Style.RESET_ALL)
         print(Fore.RED + "3. Retour 🔙" + Style.RESET_ALL)
 
+    @staticmethod
+    def tournament_submenu():
+        print(Fore.CYAN + "Menu tournoi 🏆\n" + Style.RESET_ALL)
+        print(Fore.YELLOW + "1. Voir les joueurs 🏆" + Style.RESET_ALL)
+        print(Fore.YELLOW + "2. Voir les matchs 🏆" + Style.RESET_ALL)
+        print(Fore.YELLOW + "3. Supprimer le tournois 🏆" + Style.RESET_ALL)
+        print(Fore.RED + "4. Retour 🔙" + Style.RESET_ALL)
+
 
 class PlayerCreationView:
     @staticmethod

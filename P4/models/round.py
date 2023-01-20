@@ -24,10 +24,9 @@ class Round:
 def serialize_round(round_list: list[Round]):
 
     round_data_list = []
-    match_data_list = []
     for round in round_list:
+        match_data_list = []
         for match in round.matches:
-            print(match)
             if isinstance(match[0], Player) and isinstance(match[1], Player):
                 serialized_match = [
                     serialize_players([match[0]])[0],

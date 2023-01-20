@@ -36,24 +36,3 @@ class Manager:
                 + "Erreur : l'objet n'est pas une instance de Player ou de Tournament"
                 + Style.RESET_ALL
             )
-
-    def add_player_to_tournament(self, player: Player, tournament: Tournament) -> None:
-        """
-        Adds a player to a tournament.
-
-        Parameters:
-        player (Player): The player object to add to the tournament.
-        tournament (Tournament): The tournament object to add the player to.
-
-        Returns:
-        None
-        """
-        if player not in tournament.players:
-            tournament.players.append(player)
-            print(
-                f"Le joueur {player.first_name} {player.last_name} a été ajouté au tournoi {tournament.name}."
-            )
-        else:
-            print(
-                f"Le joueur {player.first_name} {player.last_name} est déjà présent dans le tournoi {tournament.name}."
-            )

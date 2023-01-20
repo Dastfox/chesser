@@ -38,7 +38,7 @@ class Tournament:
 
     @staticmethod
     def deserialize_tournament(tournament_data_list: list[dict]):
-        tournament_list = []
+        tournament_list: list[Tournament] = []
         for tournament_data in tournament_data_list:
             players = Player.deserialize_players(tournament_data["players"])
             round = deserialize_round(tournament_data["round"])
@@ -97,7 +97,8 @@ class Tournament:
             return self.rounds[-1]
 
     def update_points(self):
-        for match in self.rounds[-1].matches:
+        current_round = self.rounds[-1]
+        for match in current_round.matches:
             p1: Player = Player.deserialize_players([match[0]])[0]
             player1 = next(player for player in self.players if player == p1)
             p2: Player = Player.deserialize_players([match[1]])[0]
@@ -115,30 +116,30 @@ class Tournament:
                 p2.points += 0.5
             player1 = p1
             player2 = p2
-        self.rounds[-1].matches = []
-
-    def play_match(self, match_idx: int, result: Union[int, str]):
-        p1, p2, _ = self.rounds[-1].matches[match_idx]
-        self.rounds[-1].matches[match_idx] = (p1, p2, result)
 
     def play_round(self):
-        print(f"Playing round {self.rounds[-1].id}")
-        for idx, (p1, p2, result) in enumerate(self.rounds[-1].matches):
+        current_round = self.rounds[-1]
+        print(f"------ {current_round.id} -------")
+        print(
+            "Résusltats des matchs:\n 1 - Victoire du joueur 1\n 2 - Victoire du joueur 2\n D - Match nul"
+        )
+        for idx, (p1, p2, result) in enumerate(current_round.matches):
             j1 = Player.deserialize_players([p1])[0]
             j2 = Player.deserialize_players([p2])[0]
             print(f"Playing match {idx + 1}")
             List_view.view_match((j1, j2, None))
-            result = input(
-                "Enter match result (1 for player 1, 2 for player 2, D for draw): "
-            )
+            result = input("Résultat du match ? : ")
             while result not in ("1", "2", "D", "d"):
-                result = input(
-                    "Enter match result (1 for player 1, 2 for player 2, D for draw): "
-                )
-            self.play_match(idx, result)
-        self.rounds[-1].is_finished = True
-        self.rounds[-1].date_time_end = str(datetime.now())
+                result = input("Résultat du match ? : ")
+            play_match(current_round, idx, result)
+        current_round.is_finished = True
+        current_round.date_time_end = str(datetime.now())
         self.update_points()
+
+    def update_ranks(self):
+        self.players.sort(key=lambda x: x.points, reverse=False)
+        for idx, player in enumerate(self.players):
+            player.rank = idx + 1
 
 
 def serialize_tournament(tournament: Tournament):
@@ -151,8 +152,8 @@ def serialize_tournament(tournament: Tournament):
 
     if (tournament.players == None) or (tournament.players == []):
         players = []
-    elif isinstance(tournament.players, Player):
-        players = serialize_players([tournament.players])
+    elif isinstance(tournament.players[0], Player):
+        players = serialize_players(tournament.players)
     else:
         players = tournament.players
 
@@ -176,3 +177,8 @@ def serialize_tournament(tournament: Tournament):
         "pair_played": pair_played,
         "leaderboard": tournament.leaderboard,
     }
+
+
+def play_match(current_round: Round, match_idx: int, result: Union[int, str]):
+    p1, p2, _ = current_round.matches[match_idx]
+    current_round.matches[match_idx] = (p1, p2, result)

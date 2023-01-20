@@ -1,4 +1,6 @@
+import json
 import time
+from controllers.player_controller import PlayerCreation
 from models.round import Round
 from views.lists_view import List_view
 from controllers.db_controller import Database
@@ -6,8 +8,8 @@ from controllers.manager_controller import Manager
 from models.tournament import Tournament, serialize_tournament
 from views.menu_view import *
 from utils import clear_console
-import colorama
 from controllers.list_controller import view_list
+from utils import yes_or_no
 
 """
 leaderboard
@@ -17,107 +19,37 @@ leaderboard
 class Leaderboard:
     def __init__(
         self,
-        main_menu_controller,
         tournament: Tournament = None,
     ) -> None:
         clear_console()
+        print("Leaderboard", tournament)
         if tournament is None:
             selected_tournament = view_list(
-                Database, Manager, main_menu_controller, Tournament, True
+                TournamentCreation,
+                Tournament,
+                True,
+                "Sélectionnez un tournoi pour afficher son leaderboard",
+                False,
+                False,
+                tournament_can_display_leaderbord,
             )
         else:
             selected_tournament = tournament
-        players = Player.deserialize_players(selected_tournament.players)
+        players = selected_tournament.players
+        if len(players) == 0:
+            clear_console()
+            print("Aucun joueur n'a été ajouté à ce tournoi")
+            input("Appuyez sur Entrée pour continuer...")
+            return
         players.sort(key=lambda x: x.points, reverse=True)
         clear_console()
-        for i, player in enumerate(players):
-            if i == 0:
-                print(
-                    colorama.Back.YELLOW
-                    + colorama.Fore.RED
-                    + colorama.Style.BRIGHT
-                    + "\n---- 1 ----"
-                    + colorama.Style.RESET_ALL
-                )
-                player.rank = 1
-            elif i == 1:
-                print(
-                    colorama.Back.CYAN
-                    + colorama.Fore.YELLOW
-                    + colorama.Style.BRIGHT
-                    + "\n---- 2 ----"
-                    + colorama.Style.RESET_ALL
-                )
-                player.rank = 2
-            elif i == 2:
-                print(
-                    colorama.Back.MAGENTA
-                    + colorama.Fore.WHITE
-                    + colorama.Style.BRIGHT
-                    + "\n---- 3 ----"
-                    + colorama.Style.RESET_ALL
-                )
-                player.rank = 3
-            else:
-                player.rank = i + 1
-            List_view.view_player(player)
+        List_view.view_leaderboard(players)
         input("Appuyez sur Entrée pour continuer...")
-        main_menu = main_menu_controller()
-        main_menu.select(input("Entrez votre réponse : "))
 
 
 """
 Tounaments
 """
-
-
-class TournamentMenu:
-    """A class representing the tournament menu in a game.
-
-    Attributes:
-        None
-    """
-
-    def __init__(self) -> None:
-        clear_console()
-        """Initialize the tournament menu.
-
-        Prints the options for the tournament menu.
-        """
-        print_tournament_menu = Menus_views.tournament_menu()
-
-    def select(self, selector: int, main_menu_controller):
-        """Select an option from the tournament menu.
-
-        Args:
-            selector: An integer representing the selected option.
-
-        Returns:
-            None
-
-        Raises:
-            TypeError: If the selector is not a valid integer.
-        """
-        while True:
-            if selector == "1":
-                start_tournament = 1
-            elif selector == "2":
-                tournament_creation = TournamentCreation()
-                create_tournament = tournament_creation.create_new()
-            elif selector == "3":
-                tournament_list = TournamentList()
-                tournament_list.view_list(main_menu_controller)
-            elif selector == "4":
-                return_back = main_menu_controller()
-                main_menu_selector = return_back.select(
-                    input("Entrez votre réponse : ")
-                )
-            else:
-                print("Cette option n'est pas disponible, veuillez réessayer")
-                return_back = TournamentMenu()
-                main_menu_selector = return_back.select(
-                    input("Entrez votre réponse : ")
-                )
 
 
 class TournamentList:
@@ -130,7 +62,7 @@ class TournamentList:
     def __init__(self):
         self.tournaments = []
 
-    def view_list(self, main_menu_controller):
+    def view_list(self):
         """View the list of tournaments.
 
         Returns:
@@ -138,28 +70,13 @@ class TournamentList:
         """
         clear_console()
         selected_tournament: Tournament = view_list(
-            Database,
-            Manager,
-            main_menu_controller,
             TournamentCreation,
             Tournament,
-            selection_enabled=True,
+            True,
             question="Sélectionnez un tournoi pour afficher ses joueurs",
         )
         clear_console()
-        Manager.view_object(selected_tournament)
-        print("Liste des joueurs du tournois sélectionné :")
-        if len(selected_tournament.players) == 0:
-            print("Aucun joueur n'a été ajouté à ce tournoi")
-
-        else:
-            player_dict = Player.deserialize_players(selected_tournament.players)
-            for player in player_dict:
-                Manager.view_object(player)
-
-        input("Appuyez sur entrée pour revenir au menu principal")
-        main_menu = main_menu_controller()
-        main_menu.select(input("Entrez votre réponse : "))
+        return selected_tournament
 
 
 class TournamentCreation:
@@ -267,87 +184,55 @@ class TournamentCreation:
         clear_console()
         print(new_tournament.name, "a été ajouté à la base de données")
         time.sleep(1)
-        main_menu = MainMenu()
-        main_menu.select(input("Entrez votre réponse : "))
+        return new_tournament
 
 
 """
-Play Tournament Menu.
+Play Tournament
 """
 
 
-class PlayTournamentMenu:
-    def __init__(self):
+class PlayTournamentController:
+    def add_players_to_tournament(self):
         clear_console()
-        """
-        Initialize the tournament play.
-        """
-        Menus_views.play_tournament_menu()
-
-    def select(self, selector: int, main_menu_controller):
-        """Select an option from the tournament menu.
-
-        Args:
-            selector: An integer representing the selected option.
-
-        Returns:
-            None
-
-        Raises:
-            TypeError: If the selector is not a valid integer.
-        """
-        while True:
-            if selector == "1":
-                self.add_players_to_tournament(main_menu_controller)
-            elif selector == "2":
-                self.play_a_round()
-            elif selector == "3":
-                return_back = main_menu_controller
-                main_menu_selector = return_back.select(
-                    input("Entrez votre réponse : ")
-                )
-            else:
-                print("Cette option n'est pas disponible, veuillez réessayer")
-                return_back = TournamentMenu()
-                main_menu_selector = return_back.select(
-                    input("Entrez votre réponse : "), main_menu_controller
-                )
-
-    def add_players_to_tournament(self, main_menu_controller):
-        clear_console()
-        print("Welcome to the tournament.")
-        tournament = self.select_tournament(main_menu_controller)
+        tournament = self.select_tournament()
         if tournament is None:
-            create_new = input(
-                "No tournament found, would you like to create one? (y/n)"
-            )
-            if create_new.lower() == "y":
+            create_new = yes_or_no("Aucun tournois trouvé. En créer un?")
+            if create_new:
                 tournament = self.create_tournament()
-            else:
+            if tournament is None:
                 return
-        players = self.select_players(main_menu_controller)
+            else:
+                print("Pas de tournois")
+                return
+        if tournament == "back":
+            return
+
+        players: list[Player] = self.select_players()
         for player in players:
             player.points = 0
+
+        for player_in_t in tournament.players:
+            if player_in_t not in players:
+                players.append(player_in_t)
+
         tournament.players = players
         tournament_db = serialize_tournament(tournament)
-        Database.update_by_name(tournament.name, tournament_db, "tournaments")
+        Database.update_db_object(tournament.name, tournament_db, "tournaments")
 
         clear_console()
         print(len(players), "joueur ajoutés au tournois")
-        time.sleep(2)
-        return_back = PlayTournamentMenu()
-        return_back.select(input("Entrez votre réponse : "))
+        time.sleep(3)
 
-    def select_tournament(self, main_menu_controller):
+    def select_tournament(self, tournament_has_players=None):
         selected_tournament = view_list(
-            Database,
-            Manager,
-            main_menu_controller,
             TournamentCreation,
             Tournament,
             True,
             "\n\nSélectionnez un tournois: ",
             True,
+            False,
+            tournament_has_players,
         )
         return selected_tournament
 
@@ -355,39 +240,30 @@ class PlayTournamentMenu:
         tournament_creation = TournamentCreation()
         tournament_creation.create_new()
 
-    def select_players(self, main_menu_controller):
+    def select_players(self):
         # players = Database.read_db("players")
-        selected_players = []
+        selected_players: list[Player | Tournament] = []
         while True:
             new_player = view_list(
-                Database,
-                Manager,
-                main_menu_controller,
-                TournamentCreation,
+                PlayerCreation,
                 Player,
                 True,
-                "Select a player by number or create a new player: ",
+                "Sélectionnez un joueur par son identifiant : ",
                 True,
                 True,
             )
             if new_player != "End":
-                selected_players.append(Player.player_format_fitting_db(new_player))
-                print(selected_players)
+                selected_players.append(new_player)
             else:
                 return selected_players
 
-    def play_a_round(self, main_menu_controller, tournament: Tournament = None):
+    def play_a_round(self, tournament: Tournament = None):
         if tournament is None:
-            selected_tournament: Tournament = view_list(
-                Database,
-                Manager,
-                main_menu_controller,
-                TournamentCreation,
-                Tournament,
-                True,
-                "\n\nSélectionnez un tournois: ",
-                True,
+            selected_tournament: Tournament = self.select_tournament(
+                tournament_can_play
             )
+            if selected_tournament == "back":
+                return
         else:
             selected_tournament = tournament
 
@@ -401,9 +277,8 @@ class PlayTournamentMenu:
         round = last_round
 
         clear_console()
-
+        print(f"------ {round.id} -------\n")
         for match in round.matches:
-            print("match", match)
             match_player = [
                 Player.deserialize_players([match[0]])[0],
                 Player.deserialize_players([match[1]])[0],
@@ -415,50 +290,47 @@ class PlayTournamentMenu:
             clear_console()
             selected_tournament.play_round()
 
-        Database.update_by_name(
+        tournament_serialized = serialize_tournament(selected_tournament)
+        Database.update_db_object(
             selected_tournament.name,
-            serialize_tournament(selected_tournament),
+            tournament_serialized,
             "tournaments",
         )
         if selected_tournament.rounds[-1].is_finished == True:
-            if selected_tournament.round_amount > len(selected_tournament.rounds):
+            if selected_tournament.round_amount == len(selected_tournament.rounds):
+                print("Tournois terminé")
+                selected_tournament.update_ranks()
+                tournament_serialized = serialize_tournament(selected_tournament)
+                Database.update_db_object(
+                    selected_tournament.name, tournament_serialized, "tournaments"
+                )
                 leaderboard = Leaderboard(
-                    main_menu_controller,
                     selected_tournament,
                 )
-                input("Appuyez sur entrée pour continuer")
             elif yes_or_no("Générer les matchups pour une autre ronde?"):
                 clear_console()
                 self.play_a_round(selected_tournament)
 
-        main_menu = PlayTournamentMenu()
-        main_menu.select(input("Entrez votre réponse : "))
 
-
-"""
-Utilities.
-"""
-
-
-def yes_or_no(question):
-    """Ask a yes or no question.
-
-    Args:
-        question (str): The yes or no question to be asked.
-
-    Returns:
-        bool: True if the answer is "yes", False if the answer is "no".
-
-    Raises:
-        ValueError: If the answer is not "yes" or "no".
-    """
-    answer = input(question + "(O/n): ").lower().strip()
-    print("")
-    while not (answer == "o" or answer == "oui" or answer == "n" or answer == "non"):
-        print("Entrez oui ou non")
-        answer = input(question + "(O/n):").lower().strip()
-        print("")
-    if answer[0] == "o":
+def tournament_can_play(tournament: Tournament):
+    if not tournament.players or len(tournament.players) < 1:
+        return False
+    elif not tournament.rounds and len(tournament.rounds) == 0:
+        return True
+    elif (
+        len(tournament.rounds) <= tournament.round_amount
+        and tournament.rounds[-1].is_finished == True
+    ):
         return True
     else:
         return False
+
+
+def tournament_can_display_leaderbord(tournament: Tournament):
+    if (
+        not tournament.rounds
+        or len(tournament.rounds) < int(tournament.round_amount)
+        or tournament.rounds[-1].is_finished == False
+    ):
+        return False
+    return True

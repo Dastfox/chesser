@@ -1,66 +1,9 @@
 from controllers.db_controller import Database
 from controllers.manager_controller import Manager
+from controllers.list_controller import view_list
 from views.menu_view import *
 from utils import clear_console
-from controllers.list_controller import view_list
-
-"""
-Players
-"""
-
-
-class PlayerMenu:
-    """A class representing the player menu in a game.
-
-    Attributes:
-        None
-    """
-
-    def __init__(self) -> None:
-        clear_console()
-        """Initialize the player menu.
-
-        Prints the options for the player menu.
-        """
-        print_playermenu = Menus_views.players_menu()
-
-    def select(self, selector: int, main_menu_controller=None):
-        """Select an option from the player menu.
-
-        Args:
-            selector: An integer representing the selected option.
-
-        Returns:
-            None
-
-        Raises:
-            TypeError: If the selector is not a valid integer.
-        """
-        while True:
-            if selector == "1":
-                add_player = PlayerCreation()
-                new_player = add_player.create_new(
-                    main_menu_controller=main_menu_controller
-                )
-            elif selector == "2":
-                view_list(
-                    Database,
-                    Manager,
-                    main_menu_controller,
-                    PlayerCreation,
-                    Player,
-                )
-            elif selector == "3":
-                return_back = main_menu_controller()
-                main_menu_selector = return_back.select(
-                    input("Entrez votre réponse : ")
-                )
-            else:
-                print("Cette option n'est pas disponible, veuillez réessayer")
-                return_back = main_menu_controller()
-                main_menu_selector = return_back.select(
-                    input("Entrez votre réponse : ")
-                )
+from utils import yes_or_no
 
 
 class PlayerCreation:
@@ -82,7 +25,7 @@ class PlayerCreation:
         self.players_list: list[Player] = players_list
         PlayerCreationView.player_creation()
 
-    def create_new(self, main_menu_controller=None):
+    def create_new(self):
         """Create a new player object.
 
         Prompts the user for input for the player's first name, last name, birthdate, gender, and rank. Validates the input and creates a new player object with the provided information. Appends the new player object to the players list.
@@ -135,11 +78,6 @@ class PlayerCreation:
             print("\nVeuillez entrer un genre valide")
             gender = input("\nGenre (H/F/Na) : ")
 
-        rank = input("\nClassement : ")
-        while not rank.isnumeric():
-            print("\nVeuillez entrer un classement valide")
-            rank = input("\nClassement : ")
-
         new_player = Player(first_name, last_name, birthdate, gender, rank)
         self.players_list.append(new_player)
         player_list_lenth = len(Player.deserialize_players(Database.read_db("players")))
@@ -163,34 +101,29 @@ class PlayerCreation:
                 )
                 player_dict = Manager.object_list_fitting_db(self.players_list)
                 saving_list = Database.export_to_db(player_dict, "players")
-                return_back = PlayerMenu()
-                return_back.select(input("\nEntrez votre réponse : "))
         else:
             player_dict = Manager.object_list_fitting_db(self.players_list)
             Database.export_to_db(player_dict, "players")
-            main_menu = main_menu_controller()
-            main_menu.select(input("Entrez votre réponse : "))
 
 
-def yes_or_no(question):
-    """Ask a yes or no question.
+class PlayerList:
+    """A class representing the player list in a game.
 
-    Args:
-        question (str): The yes or no question to be asked.
-
-    Returns:
-        bool: True if the answer is "yes", False if the answer is "no".
-
-    Raises:
-        ValueError: If the answer is not "yes" or "no".
+    Attributes:
+        None
     """
-    answer = input(question + "(O/n): ").lower().strip()
-    print("")
-    while not (answer == "o" or answer == "oui" or answer == "n" or answer == "non"):
-        print("Entrez oui ou non")
-        answer = input(question + "(O/n):").lower().strip()
-        print("")
-    if answer[0] == "o":
-        return True
-    else:
-        return False
+
+    def __init__(self):
+        clear_console()
+
+    def view_list(self):
+        """View the list of tournaments.
+
+        Returns:
+            None
+        """
+        clear_console()
+        list = view_list(
+            PlayerCreation,
+            Player,
+        )

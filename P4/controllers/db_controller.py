@@ -1,3 +1,5 @@
+import json
+from xml.dom.minidom import Document
 from tinydb import TinyDB as tiny, where
 
 
@@ -15,21 +17,12 @@ class Database:
         list = db.table(table)
         return list.all()
 
-    def update_by_name(name: str, updated_data: dict, table_name: str, db_name="db"):
+    def update_db_object(name: str, updated_data: dict, table_name: str, db_name="db"):
         db = tiny("{}.json".format(db_name))
         table = db.table(table_name)
-        obj = table.search(where("name") == name)
-        if obj:
-            obj = obj[0]
-            for updated_player in updated_data["players"]:
-                for i, obj_player in enumerate(obj["players"]):
-                    if obj_player['firstname'] == updated_player['firstname'] and obj_player['lastname'] == updated_player['lastname']:
-                        obj["players"][i] = updated_player
-                        break
-            obj["players"].sort(key=lambda x: x["lastname"])
-            del updated_data["players"]
+        table.update(updated_data, where("name") == name)
 
-            obj.update(updated_data)
-            table.update(obj)
-        else:
-            print("No object found with the name: ", name)
+    def delete_db_object(name: str, table_name: str, db_name="db"):
+        db = tiny("{}.json".format(db_name))
+        table = db.table(table_name)
+        table.remove(where("name") == name)

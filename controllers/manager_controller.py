@@ -1,7 +1,7 @@
 from models.players import Player, serialize_player
 from models.tournament import Tournament, serialize_tournament
 from colorama import Fore, Style
-from views.lists_view import List_view
+from views.object_view import Object_view
 
 
 class Manager:
@@ -28,9 +28,9 @@ class Manager:
     @staticmethod
     def view_object(object, id: int = 0):
         if isinstance(object, Player):
-            List_view.view_player(object, id)
+            Object_view.view_player(object, id)
         elif isinstance(object, Tournament):
-            List_view.view_tournament(object, id)
+            Object_view.view_tournament(object, id)
         else:
             print(
                 Fore.RED

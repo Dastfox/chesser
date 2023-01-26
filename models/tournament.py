@@ -1,5 +1,5 @@
 import random
-from views.lists_view import List_view
+from views.object_view import Object_view
 from models.round import Round, serialize_round, deserialize_round
 from models.players import Player, serialize_players
 from datetime import datetime
@@ -54,6 +54,31 @@ class Tournament:
         return tournament_list
 
     def generate_pairs(self):
+        """
+
+        This method is used to generate pairs of players for the next
+        round of a tournament. It shuffles and sorts the players in
+        the tournament by their points, and then pairs the players up.
+        If a pair of players has already played each other in a
+        previous round, it will randomly choose another player
+        for one of the members of the pair to play against.
+
+        Example:
+
+        tournament = Tournament()
+
+        tournament.players = [
+            Player("John", "Doe", "1"),
+            Player("Jane", "Doe", "2"),
+            Player("Bob", "Smith", "3")
+        ]
+
+        tournament.generate_pairs()
+
+        This will generate a new round for the tournament
+        with the players John Doe, Jane Doe, and Bob Smith
+        paired up in matches.
+        """
         if self.rounds is None:
             self.rounds = []
         round_num = len(self.rounds) + 1
@@ -66,6 +91,11 @@ class Tournament:
                 matches=[],
             )
         )
+        if len(self.players) == 2:
+            self.rounds[-1].matches.append(
+                (self.players[0], self.players[1], None)
+            )
+            return self.rounds[-1]
         random.shuffle(self.players)
         self.players.sort(key=lambda x: x.points, reverse=True)
         pairs = [
@@ -81,16 +111,22 @@ class Tournament:
                 self.pair_played.append((p1, p2))
             else:
                 available_players = [
-                    p
-                    for p in self.players
-                    if p not in (p1, p2)
-                    and (p, p1) not in self.pair_played
-                    and (p, p2) not in self.pair_played
+                    p for p in self.players if p not in (p1, p2)
                 ]
-                if available_players:
-                    p2 = random.choice(available_players)
-                    self.rounds[-1].matches.append((p1, p2, None))
-                    self.pair_played.append((p1, p2))
+                least_played = min(
+                    [
+                        (
+                            p,
+                            self.pair_played.count((p, p1))
+                            + self.pair_played.count((p1, p)),
+                        )
+                        for p in available_players
+                    ],
+                    key=lambda x: x[1],
+                )[0]
+                self.rounds[-1].matches.append((p1, least_played, None))
+                self.pair_played.append((p1, least_played))
+
         return self.rounds[-1]
 
     def update_points(self):
@@ -116,22 +152,24 @@ class Tournament:
 
     def play_round(self):
         current_round = self.rounds[-1]
-        print(f"------ {current_round.id} -------")
-        print("Résusltats des matchs:\n")
-        print("1 - Victoire du joueur 1\n")
-        print("2 - Victoire du joueur 2\n")
-        print("D - Match nul\n")
+        Object_view.view_play_round(current_round.id)
+
         for idx, (p1, p2, result) in enumerate(current_round.matches):
+            if result is not None:
+                continue
             j1 = Player.deserialize_players([p1])[0]
             j2 = Player.deserialize_players([p2])[0]
-            print(f"Playing match {idx + 1}")
-            List_view.view_match((j1, j2, None))
+            print(f"Match {idx + 1}")
+            Object_view.view_match((j1, j2, None))
             result = input("Résultat du match ? : ")
-            while result not in ("1", "2", "D", "d"):
+            while result not in ("1", "2", "D", "d", "R", "r"):
                 result = input("Résultat du match ? : ")
+                if result in ("R", "r"):
+                    break
             play_match(current_round, idx, result)
-        current_round.is_finished = True
-        current_round.date_time_end = str(datetime.now())
+        if current_round.matches[-1][2] is not None:
+            current_round.is_finished = True
+            current_round.date_time_end = str(datetime.now())
         self.update_points()
 
     def update_ranks(self):
@@ -182,4 +220,11 @@ def serialize_tournament(tournament: Tournament):
 
 def play_match(current_round: Round, match_idx: int, result: Union[int, str]):
     p1, p2, _ = current_round.matches[match_idx]
-    current_round.matches[match_idx] = (p1, p2, result)
+    if result in ("R", "r"):
+        return current_round
+    if result in ("1", "2"):
+        current_round.matches[match_idx] = (p1, p2, result)
+    elif result in ("D", "d"):
+        current_round.matches[match_idx] = (p1, p2, "D")
+    else:
+        raise ValueError("Invalid match result.")

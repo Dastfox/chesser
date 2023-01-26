@@ -1,9 +1,9 @@
 from typing import Union
+from views.object_view import Object_view
 from controllers.manager_controller import Manager
 from models.players import Player
 from models.tournament import Tournament
 from utils import clear_console
-from colorama import Fore, Style
 from controllers.db_controller import Database
 
 
@@ -48,52 +48,31 @@ def view_list(
 
     if callback_condition_for_display:
         liste = []
-        print(len(initial_list))
         for object in initial_list:
             boolean = callback_condition_for_display(object)
             if boolean:
                 liste.append(object)
         initial_list = liste
 
-    if len(initial_list) == 0:
-        input("Aucun objet trouvé. Retour au menu principal...")
-        return
-
     id = 1
+
+    if len(initial_list) == 0:
+        if callback_condition_for_display:
+            print("Aucun tournois pouvant être affiché")
+            print("dans ce menu n'a été trouvé.")
+            if not additional_item_create:
+                input("Retour au menu...")
+                return "back"
+        if not additional_item_create:
+            input("Aucun objet trouvé. Retour au menu...")
+            return "back"
+
     for object in initial_list:
         final_list.append(object)
         Manager.view_object(object, id)
         id += 1
     if additional_item_create:
-        id_as_string = str(id)
-        if object_type == Player:
-            print(
-                Fore.CYAN
-                + "-----  "
-                + id_as_string
-                + "  -----"
-                + "\nCréer un nouveau joueur"
-                + Style.RESET_ALL
-            )
-        elif object_type == Tournament:
-            print(
-                Fore.CYAN
-                + "-----  "
-                + id_as_string
-                + "  -----"
-                + "\nCréer un nouveau tournoi"
-                + Style.RESET_ALL
-            )
-    if additional_item_end:
-        id_as_string = str(id + 1)
-        print(
-            Fore.RED
-            + "-----  "
-            + id_as_string
-            + "  -----"
-            + "\nFin de l'ajout"
-            + Style.RESET_ALL
-        )
+        Object_view.view_additional_options(id, additional_item_end)
     if selection_enabled:
         selected_id = ""
         selected_id = input(
@@ -115,7 +94,7 @@ def view_list(
             new_tournament = obj_creation.create_new()
             return new_tournament
         if selected_id == len(final_list) + 2:
-            return "End"
+            return "end"
         selected_object: Union[Player, Tournament] = final_list[
             selected_id - 1
         ]

@@ -2,8 +2,7 @@ from controllers.db_controller import Database
 from controllers.manager_controller import Manager
 from controllers.list_controller import view_list
 from views.menu_view import PlayerCreationView
-from utils import clear_console
-from utils import yes_or_no
+from utils import yes_or_no, clear_console
 from models.players import Player
 import re
 
@@ -87,9 +86,9 @@ class PlayerCreation:
             gender = input("\nGenre (H/F/Na) : ")
 
         chess_id = input("\nIdentifiant FFE : ")
-        while not re.match(r"^[A-Z]{2}\d{5}$", chess_id):
+        while not re.match(r"^[A-Za-z]{2}\d{5}$", chess_id):
             print("\nVeuillez entrer un identifiant valide")
-            chess_id = input("\nIdentifiant FFE : ")
+            chess_id = input("\nIdentifiant FFE : ").upper()
 
         new_player = Player(
             first_name, last_name, birthdate, gender, rank, chess_id

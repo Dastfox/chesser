@@ -1,6 +1,6 @@
 import time
 from controllers.db_controller import Database
-from views.lists_view import List_view
+from views.object_view import Object_view
 from controllers.manager_controller import Manager
 from controllers.player_controller import PlayerCreation, PlayerList
 from controllers.tournament_controller import PlayTournamentController
@@ -150,8 +150,10 @@ class TournamentSubMenu:
             if selector == "1":
                 TournamentList()
                 clear_console()
+                print("Tournois sélectionné :")
                 Manager.view_object(tournament)
-                print("Liste des joueurs du tournois sélectionné :")
+                print("\n")
+                print("Liste des joueurs :")
                 if len(tournament.players) == 0:
                     print("Aucun joueur n'a été ajouté à ce tournoi")
                 else:
@@ -182,11 +184,11 @@ class TournamentSubMenu:
                     print("Aucun match n'a été ajouté à ce tournoi")
                 else:
                     for round in tournament.rounds:
-                        print("---------", round.id, "---------")
-                        if round.is_finished:
-                            print("Statut de la ronde : Terminée")
-                        else:
-                            print("Statut de la ronde : En cours")
+                        Object_view.view_round_status(
+                            round.is_finished,
+                            round.id,
+                            tournament.round_amount,
+                        )
 
                         print("Liste des matchs de la ronde :\n")
                         for match in round.matches:
@@ -195,7 +197,7 @@ class TournamentSubMenu:
                                 Player.deserialize_players([match[1]])[0],
                                 match[2],
                             )
-                            List_view.view_match(match_deserialized, 0, True)
+                            Object_view.view_match(match_deserialized, 0, True)
 
                 input("Appuyez sur entrée pour revenir au menu précédent")
                 return_back = TournamentSubMenu(tournament)

@@ -1,12 +1,13 @@
 import time
 from controllers.player_controller import PlayerCreation
 from models.round import Round
-from views.lists_view import List_view
+from views.object_view import Object_view
 from controllers.db_controller import Database
 from controllers.manager_controller import Manager
 from models.tournament import Tournament, serialize_tournament
 from models.players import Player
 from views.menu_view import TournamentCreationView
+
 from utils import clear_console
 from controllers.list_controller import view_list
 from utils import yes_or_no
@@ -24,7 +25,10 @@ class Leaderboard:
         clear_console()
         print("Leaderboard", tournament)
         selected_tournament = None
-        while not type(selected_tournament) is Tournament:
+        while not (
+            type(selected_tournament) is Tournament
+            or selected_tournament == "back"
+        ):
             if tournament:
                 selected_tournament = tournament
             else:
@@ -37,17 +41,23 @@ class Leaderboard:
                     False,
                     tournament_can_display_leaderbord,
                 )
-
-        players = selected_tournament.players
-        if len(players) == 0:
+        if selected_tournament == "back":
+            return
+        if isinstance(selected_tournament, Tournament):
+            players = selected_tournament.players
+            if len(players) == 0:
+                clear_console()
+                print("Aucun joueur n'a été ajouté à ce tournoi")
+                input("Appuyez sur Entrée pour continuer...")
+                return
+            players.sort(key=lambda x: x.points, reverse=True)
             clear_console()
-            print("Aucun joueur n'a été ajouté à ce tournoi")
+            Object_view.view_leaderboard(players)
+            input("Appuyez sur Entrée pour continuer...")
+        else:
+            print("Erreur : Le tournoi sélectionné n'est pas valide")
             input("Appuyez sur Entrée pour continuer...")
             return
-        players.sort(key=lambda x: x.points, reverse=True)
-        clear_console()
-        List_view.view_leaderboard(players)
-        input("Appuyez sur Entrée pour continuer...")
 
 
 """
@@ -231,7 +241,9 @@ class PlayTournamentController:
         if tournament == "back":
             return
 
+        print(tournament, "sélectionné")
         players: list[Player] = self.select_players()
+        print(players, "players")
         for player in players:
             player.points = 0
 
@@ -269,11 +281,11 @@ class PlayTournamentController:
         tournament_creation.create_new()
 
     def select_players(self):
-        # players = Database.read_db("players")
-        selected_players: list[Player] | list[Tournament] = []
+        clear_console()
+        selected_players: list[Player] = []
         while True:
             new_player = None
-            while type(new_player) is not Player or new_player != "End":
+            while not (isinstance(new_player, Player) or new_player == "end"):
                 new_player = view_list(
                     PlayerCreation,
                     Player,
@@ -282,33 +294,36 @@ class PlayTournamentController:
                     True,
                     True,
                 )
-            if new_player != "End":
-                selected_players.append(new_player)
-            else:
+            if new_player == "end":
                 return selected_players
+            if new_player not in selected_players and isinstance(
+                new_player, Player
+            ):
+                selected_players.append(new_player)
 
     def play_a_round(self, tournament: Tournament | None = None):
         selected_tournament = None
-        while (
-            type(selected_tournament) is not Tournament
-            or selected_tournament != "back"
+        while not (
+            type(selected_tournament) is Tournament
+            or selected_tournament == "back"
         ):
             if tournament is None:
                 selected_tournament = self.select_tournament(
                     tournament_can_play
                 )
-                if selected_tournament == "back":
-                    return
             else:
                 selected_tournament = tournament
 
+        if selected_tournament == "back":
+            return
+        elif not isinstance(selected_tournament, Tournament):
+            return
         if selected_tournament.rounds and len(selected_tournament.rounds) > 0:
             last_round: Round = selected_tournament.rounds[-1]
             if last_round.is_finished:
                 last_round = selected_tournament.generate_pairs()
         else:
             last_round = selected_tournament.generate_pairs()
-
         round = last_round
 
         clear_console()
@@ -319,8 +334,12 @@ class PlayTournamentController:
                 Player.deserialize_players([match[1]])[0],
                 match[2],
             ]
-            List_view.view_match(match_player)
-
+            Object_view.view_match(match_player, 0, True)
+        number_of_matches = 0
+        for match in round.matches:
+            if match[2] not in ["1", "2", "d", "D"]:
+                number_of_matches += 1
+        print(f"{number_of_matches} matchs restants.")
         if yes_or_no("Jouer la ronde?"):
             clear_console()
             selected_tournament.play_round()
@@ -358,11 +377,14 @@ def tournament_can_play(tournament: Tournament):
         return False
     elif not tournament.rounds and len(tournament.rounds) == 0:
         return True
-    elif (
-        len(tournament.rounds) <= tournament.round_amount
-        and tournament.rounds[-1].is_finished
-    ):
-        return True
+    elif len(tournament.rounds) <= tournament.round_amount:
+        if (
+            len(tournament.rounds) == tournament.round_amount
+            and tournament.rounds[-1].is_finished
+        ):
+            return False
+        else:
+            return True
     else:
         return False
 

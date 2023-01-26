@@ -1,4 +1,3 @@
-
 from tinydb import TinyDB as tiny, where
 
 
@@ -24,10 +23,10 @@ class Database:
     ):
         db = tiny("{}.json".format(db_name))
         table = db.table(table_name)
-        table.update(updated_data, where("name") == name)
+        table.update(updated_data, where("name") == name)  # type: ignore
 
     @staticmethod
     def delete_db_object(name: str, table_name: str, db_name="db"):
         db = tiny("{}.json".format(db_name))
         table = db.table(table_name)
-        table.remove(where("name") == name)
+        table.remove(where("name") == name)  # type: ignore

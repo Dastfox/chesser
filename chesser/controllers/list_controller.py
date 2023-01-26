@@ -55,9 +55,9 @@ def view_list(
                 liste.append(object)
         initial_list = liste
 
-    # for object in initial_list:
-    #     print(object.name)
-    #     print(len(object.rounds), object.round_amount)
+    if len(initial_list) == 0:
+        input("Aucun objet trouvé. Retour au menu principal...")
+        return
 
     id = 1
     for object in initial_list:

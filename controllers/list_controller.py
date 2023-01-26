@@ -75,9 +75,7 @@ def view_list(
         Object_view.view_additional_options(id, additional_item_end)
     if selection_enabled:
         selected_id = ""
-        selected_id = input(
-            question + " (Entrer 'R' pour revenir au menu principal)"
-        )
+        selected_id = input(question + " (Entrer 'R' pour revenir au menu principal)")
         if selected_id.upper() == "R":
             clear_console()
             return "back"
@@ -95,9 +93,7 @@ def view_list(
             return new_tournament
         if selected_id == len(final_list) + 2:
             return "end"
-        selected_object: Union[Player, Tournament] = final_list[
-            selected_id - 1
-        ]
+        selected_object: Union[Player, Tournament] = final_list[selected_id - 1]
         return selected_object
     else:
         input("Appuyez sur entrée pour revenir au menu principal")
